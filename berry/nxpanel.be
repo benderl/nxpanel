@@ -237,6 +237,7 @@ class Nextion : Driver
     end
 
     def set_power()
+        log('NXP: set_power() called...')
         var ps = tasmota.get_power()
         for i:0..1
             if ps[i] == true
@@ -251,6 +252,7 @@ class Nextion : Driver
     end
 
     def set_clock()
+        log('NXP: set_clock() called...')
         var now = tasmota.rtc()
         var time_raw = now['local']
         var nsp_time = tasmota.time_dump(time_raw)
@@ -466,6 +468,9 @@ def install_nxpanel()
     tasmota.resp_cmnd_done()
 end
 
+tasmota.cmd("Rule3 1")  # needed until Berry bug fixed
+tasmota.cmd("State")
+
 tasmota.add_cmd('Nextion', send_cmd)
 tasmota.add_cmd('Screen', send_cmd2)
 tasmota.add_cmd('NxPanel', send_cmd2)
@@ -478,5 +483,3 @@ tasmota.add_rule("power2#state", /-> nextion.set_power())
 tasmota.add_rule("Time#Minute", /-> nextion.set_clock())
 tasmota.add_rule("alarm#update=1", /-> nextion.auto_update())
 tasmota.add_rule("config#v", /a,b,c-> nextion.update_trigger(a,b,c))
-tasmota.cmd("Rule3 1")  # needed until Berry bug fixed
-tasmota.cmd("State")
