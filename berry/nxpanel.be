@@ -25,7 +25,7 @@ class Nextion : Driver
     var last_per
     var auto_update_flag
 
-    def split_msg(b)   
+    def split_msg(b)
         import string
         var ret = []
         var i = 0
@@ -48,39 +48,39 @@ class Nextion : Driver
     end
 
     def crc16(data, poly)
-      if !poly  poly = 0xA001 end
-      # CRC-16 MODBUS HASHING ALGORITHM
-      var crc = 0xFFFF
-      for i:0..size(data)-1
-        crc = crc ^ data[i]
-        for j:0..7
-          if crc & 1
-            crc = (crc >> 1) ^ poly
-          else
-            crc = crc >> 1
-          end
+        if !poly  poly = 0xA001 end
+        # CRC-16 MODBUS HASHING ALGORITHM
+        var crc = 0xFFFF
+        for i:0..size(data)-1
+            crc = crc ^ data[i]
+            for j:0..7
+                if crc & 1
+                    crc = (crc >> 1) ^ poly
+                else
+                    crc = crc >> 1
+                end
+            end
         end
-      end
-      return crc
+        return crc
     end
 
     def encode(payload)
-      var b = bytes()
-      b += self.header
-      var nsp_type = 0 # not used
-      b.add(nsp_type)       # add a single byte
-      var b1 = bytes().fromstring(payload)
-      var b2 = bytes()
-      for i: 0..size(b1)-1
-        if (b1[i]!=0xC2)
-            b2.add(b1[i])
+        var b = bytes()
+        b += self.header
+        var nsp_type = 0  # not used
+        b.add(nsp_type)  # add a single byte
+        var b1 = bytes().fromstring(payload)
+        var b2 = bytes()
+        for i: 0..size(b1)-1
+            if (b1[i]!=0xC2)
+                b2.add(b1[i])
+            end
         end
-      end
-      b.add(size(b2), 2)   # add size as 2 bytes, little endian
-      b += b2
-      var msg_crc = self.crc16(b)
-      b.add(msg_crc, 2)       # crc 2 bytes, little endian
-      return b
+        b.add(size(b2), 2)  # add size as 2 bytes, little endian
+        b += b2
+        var msg_crc = self.crc16(b)
+        b.add(msg_crc, 2)  # crc 2 bytes, little endian
+        return b
     end
 
     def encodenx(payload)
@@ -93,13 +93,13 @@ class Nextion : Driver
         import string
         var payload_bin = self.encodenx(payload)
         self.ser.write(payload_bin)
-        log(string.format("NXP: Nextion command sent = %s",str(payload_bin)), 3)       
+        log(string.format("NXP: Nextion command sent = %s",str(payload_bin)), 3)
     end
 
     def send(payload)
         var payload_bin = self.encode(payload)
         if self.flash_mode==1
-            log("NXP: skipped command becuase still flashing", 3)
+            log("NXP: skipped command because still flashing", 3)
         else 
             self.ser.write(payload_bin)
             log("NXP: payload sent = " + str(payload_bin), 3)
@@ -137,7 +137,6 @@ class Nextion : Driver
     end
 
     def write_block()
-        
         import string
         log("FLH: Read block",3)
         while size(self.flash_buff)<self.flash_block_size && self.tcp.connected()
@@ -159,9 +158,9 @@ class Nextion : Driver
         end
         log("FLH: Writing "+str(size(to_write)),3)
         var per = (self.flash_written*100)/self.flash_size
-        if (self.last_per!=per) 
+        if (self.last_per!=per)
             self.last_per = per
-            tasmota.publish_result(string.format("{\"Flashing\":{\"complete\": %d}}",per), "RESULT") 
+            tasmota.publish_result(string.format("{\"Flashing\":{\"complete\": %d}}",per), "RESULT")
         end
         if size(to_write)>0
             self.flash_written += size(to_write)
@@ -177,7 +176,6 @@ class Nextion : Driver
             log("FLH: Flashing complete")
             self.flash_mode = 0
         end
-
     end
 
     def every_100ms()
@@ -211,21 +209,21 @@ class Nextion : Driver
                         if size(msg) > 0
                             if msg == bytes('000000FFFFFF88FFFFFF')
                                 self.screeninit()
-                            elif msg[0]==0x7B # JSON, starting with "{"
+                            elif msg[0]==0x7B  # JSON, starting with "{"
                                 var jm = string.format("%s",msg[0..-1].asstring())
-                                tasmota.publish_result(jm, "RESULT")        
-                            elif msg[0]==0x07 && size(msg)==1 # BELL/Buzzer
+                                tasmota.publish_result(jm, "RESULT")
+                            elif msg[0]==0x07 && size(msg)==1  # BELL/Buzzer
                                 tasmota.cmd("buzzer 1,1")
                             else
                                 var jm = string.format("{\"nextion\":\"%s\"}",str(msg[0..-4]))
-                                tasmota.publish_result(jm, "RESULT")        
+                                tasmota.publish_result(jm, "RESULT")
                             end
-                        end       
+                        end
                     end
                 end
             end
         end
-    end      
+    end
 
     def begin_nextion_flash()
         self.flash_written = 0
@@ -235,34 +233,33 @@ class Nextion : Driver
         self.sendnx('recmod=0')
         self.sendnx('recmod=0')
         self.flash_mode = 1
-        self.sendnx("connect")        
+        self.sendnx("connect")
     end
-    
+
     def set_power()
-      var ps = tasmota.get_power()
-      for i:0..1
-        if ps[i] == true
-          ps[i] = "1"
-        else 
-          ps[i] = "0"
+        var ps = tasmota.get_power()
+        for i:0..1
+            if ps[i] == true
+                ps[i] = "1"
+            else 
+                ps[i] = "0"
+            end
         end
-      end
-      var json_payload = '{ "switches": { "switch1": ' + ps[0] + ' , "switch2": ' + ps[1] +  ' } }'
-      log('NXP: Switch state updated with ' + json_payload)
-      self.send(json_payload)
+        var json_payload = '{ "switches": { "switch1": ' + ps[0] + ' , "switch2": ' + ps[1] +  ' } }'
+        log('NXP: Switch state updated with ' + json_payload)
+        self.send(json_payload)
     end
 
     def set_clock()
-      var now = tasmota.rtc()
-      var time_raw = now['local']
-      var nsp_time = tasmota.time_dump(time_raw)
-      var time_payload = '{ "clock": { "date":' + str(nsp_time['day']) + ',"month":' + str(nsp_time['month']) + ',"year":' + str(nsp_time['year']) + ',"weekday":' + str(nsp_time['weekday']) + ',"hour":' + str(nsp_time['hour']) + ',"min":' + str(nsp_time['min']) + ' } }'
-      log('NXP: Time and date synced with ' + time_payload, 3)
-      self.send(time_payload)
+        var now = tasmota.rtc()
+        var time_raw = now['local']
+        var nsp_time = tasmota.time_dump(time_raw)
+        var time_payload = '{ "clock": { "date":' + str(nsp_time['day']) + ',"month":' + str(nsp_time['month']) + ',"year":' + str(nsp_time['year']) + ',"weekday":' + str(nsp_time['weekday']) + ',"hour":' + str(nsp_time['hour']) + ',"min":' + str(nsp_time['min']) + ' } }'
+        log('NXP: Time and date synced with ' + time_payload, 3)
+        self.send(time_payload)
     end
 
     def open_url(url)
-
         import string
         var host
         var port
@@ -288,16 +285,16 @@ class Nextion : Driver
         self.tcp.connect(host,port)
         log("FLH: Connected:"+str(self.tcp.connected()),3)
         var get_req = "GET "+get+" HTTP/1.0\r\n"
-	get_req += string.format("HOST: %s:%s\r\n\r\n",host,port)
+        get_req += string.format("HOST: %s:%s\r\n\r\n",host,port)
         self.tcp.write(get_req)
         var a = self.tcp.available()
         i = 1
         while a==0 && i<5
-          tasmota.delay(100*i)
-          tasmota.yield() 
-          i += 1
-          log("FLH: Retry "+str(i),3)
-          a = self.tcp.available()
+            tasmota.delay(100*i)
+            tasmota.yield() 
+            i += 1
+            log("FLH: Retry "+str(i),3)
+            a = self.tcp.available()
         end
         if a==0
             log("FLH: Nothing available to read!",3)
@@ -315,18 +312,18 @@ class Nextion : Driver
                 i += 1
             end
         end
-        #print(headers)
-		# check http respose for code 200
-		var tag = "200 OK"
+        # print(headers)
+        # check http response for code 200
+        var tag = "200 OK"
         i = string.find(headers,tag)
         if (i>0) 
-            log("FLH: HTTP Respose is 200 OK",3)
-		else
-            log("FLH: HTTP Respose is not 200 OK",3)
-			print(headers)
-			return
+            log("FLH: HTTP Response is 200 OK",3)
+        else
+            log("FLH: HTTP Response is not 200 OK",3)
+            print(headers)
+            return
         end
-		# check http respose for content-length
+        # check http response for content-length
         tag = "Content-Length: "
         i = string.find(headers,tag)
         if (i>0) 
@@ -337,29 +334,26 @@ class Nextion : Driver
         if self.flash_size==0
             log("FLH: No size header, counting ...",3)
             self.flash_size = size(self.flash_buff)
-            #print("counting start ...")
+            # print("counting start ...")
             while self.tcp.connected()
                 while self.tcp.available()>0
                     self.flash_size += size(self.tcp.readbytes())
                 end
                 tasmota.delay(50)
             end
-            #print("counting end ...",self.flash_size)
+            # print("counting end ...",self.flash_size)
             self.tcp.close()
             self.open_url(url)
         else
             log("FLH: Size found in header, skip count",3)
         end
         log("FLH: Flash file size: "+str(self.flash_size),3)
-
     end
 
     def flash_nextion(url)
-
         self.flash_size = 0
         self.open_url(url)
         self.begin_nextion_flash()
-
     end
 
     def version_number(sval)
@@ -371,12 +365,10 @@ class Nextion : Driver
     end
 
     def auto_update()
-
         log("NXP: Triggering update check");
         self.auto_update_flag = 1
         var json = '{"config": ""}'
         self.send(json)
-
     end
 
     def update_trigger (value, trigger, msg)
@@ -424,10 +416,8 @@ class Nextion : Driver
     end
 
     def check_for_updates()
-        
         self.auto_update()
-        tasmota.set_timer(1000*60*60*24,/->self.check_for_updates()) # daily
-
+        tasmota.set_timer(1000*60*60*24,/->self.check_for_updates())  # daily
     end
 
     def init()
@@ -439,9 +429,7 @@ class Nextion : Driver
     end
 
     def install()
-
         self.flash_nextion("http://proto.systems/nxpanel/nxpanel-latest.tft")
-
     end
 
 end
@@ -490,6 +478,5 @@ tasmota.add_rule("power2#state", /-> nextion.set_power())
 tasmota.add_rule("Time#Minute", /-> nextion.set_clock())
 tasmota.add_rule("alarm#update=1", /-> nextion.auto_update())
 tasmota.add_rule("config#v", /a,b,c-> nextion.update_trigger(a,b,c))
-tasmota.cmd("Rule3 1") # needed until Berry bug fixed
+tasmota.cmd("Rule3 1")  # needed until Berry bug fixed
 tasmota.cmd("State")
-
