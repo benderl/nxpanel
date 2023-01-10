@@ -100,7 +100,7 @@ class Nextion : Driver
         var payload_bin = self.encode(payload)
         if self.flash_mode==1
             log("NXP: skipped command because still flashing", 3)
-        else 
+        else
             self.ser.write(payload_bin)
             log("NXP: payload sent = " + str(payload_bin), 3)
         end
@@ -293,7 +293,7 @@ class Nextion : Driver
         i = 1
         while a==0 && i<5
             tasmota.delay(100*i)
-            tasmota.yield() 
+            tasmota.yield()
             i += 1
             log("FLH: Retry "+str(i),3)
             a = self.tcp.available()

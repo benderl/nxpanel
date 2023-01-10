@@ -125,9 +125,9 @@ class Nextion : Driver
         end
         log("FLH: Writing "+str(size(to_write)),3)
         var per = (self.flash_written*100)/self.flash_size
-        if (self.last_per!=per) 
+        if (self.last_per!=per)
             self.last_per = per
-            tasmota.publish_result(string.format("{\"Flashing\":{\"complete\": %d, \"time_elapsed\": %d}}",per , (tasmota.millis()-self.flash_start_millis)/1000), "RESULT") 
+            tasmota.publish_result(string.format("{\"Flashing\":{\"complete\": %d, \"time_elapsed\": %d}}",per , (tasmota.millis()-self.flash_start_millis)/1000), "RESULT")
         end
         if size(to_write)>0
             self.flash_written += size(to_write)
@@ -249,11 +249,11 @@ class Nextion : Driver
         var a = self.tcp.available()
         i = 1
         while a==0 && i<5
-          tasmota.delay(100*i)
-          tasmota.yield() 
-          i += 1
-          log("FLH: Retry "+str(i),3)
-          a = self.tcp.available()
+            tasmota.delay(100*i)
+            tasmota.yield()
+            i += 1
+            log("FLH: Retry "+str(i),3)
+            a = self.tcp.available()
         end
         if a==0
             log("FLH: Nothing available to read!",3)
