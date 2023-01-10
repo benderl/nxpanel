@@ -29,46 +29,46 @@ class Nextion : Driver
     var url
 
     def split_55(b)
-      var ret = []
-      var s = size(b)   
-      var i = s-2   # start from last-1
-      while i > 0
-        if b[i] == 0x55 && b[i+1] == 0xBB           
-          ret.push(b[i..s-1]) # push last msg to list
-          b = b[(0..i-1)]   # write the rest back to b
+        var ret = []
+        var s = size(b)
+        var i = s-2  # start from last-1
+        while i > 0
+            if b[i] == 0x55 && b[i+1] == 0xBB
+                ret.push(b[i..s-1])  # push last msg to list
+                b = b[(0..i-1)]  # write the rest back to b
+            end
+            i -= 1
         end
-        i -= 1
-      end
-      ret.push(b)
-      return ret
+        ret.push(b)
+        return ret
     end
 
     def crc16(data, poly)
-      if !poly  poly = 0xA001 end
-      # CRC-16 MODBUS HASHING ALGORITHM
-      var crc = 0xFFFF
-      for i:0..size(data)-1
-        crc = crc ^ data[i]
-        for j:0..7
-          if crc & 1
-            crc = (crc >> 1) ^ poly
-          else
-            crc = crc >> 1
-          end
+        if !poly  poly = 0xA001 end
+        # CRC-16 MODBUS HASHING ALGORITHM
+        var crc = 0xFFFF
+        for i:0..size(data)-1
+            crc = crc ^ data[i]
+            for j:0..7
+                if crc & 1
+                    crc = (crc >> 1) ^ poly
+                else
+                    crc = crc >> 1
+                end
+            end
         end
-      end
-      return crc
+        return crc
     end
 
     # encode using custom protocol 55 BB [payload length] [payload length] [payload] [crc] [crc]
     def encode(payload)
-      var b = bytes()
-      b += self.header
-      b.add(size(payload), 2)   # add size as 2 bytes, little endian
-      b += bytes().fromstring(payload)
-      var msg_crc = self.crc16(b)
-      b.add(msg_crc, 2)       # crc 2 bytes, little endian
-      return b
+        var b = bytes()
+        b += self.header
+        b.add(size(payload), 2)  # add size as 2 bytes, little endian
+        b += bytes().fromstring(payload)
+        var msg_crc = self.crc16(b)
+        b.add(msg_crc, 2)  # crc 2 bytes, little endian
+        return b
     end
 
     def encodenx(payload)
@@ -81,14 +81,14 @@ class Nextion : Driver
         import string
         var payload_bin = self.encodenx(payload)
         self.ser.write(payload_bin)
-        log(string.format("NXP: Nextion command sent = %s",str(payload_bin)), 3)       
+        log(string.format("NXP: Nextion command sent = %s",str(payload_bin)), 3)
     end
 
     def send(payload)
         var payload_bin = self.encode(payload)
         if self.flash_mode==1
-            log("NXP: skipped command becuase still flashing", 3)
-        else 
+            log("NXP: skipped command because still flashing", 3)
+        else
             self.ser.write(payload_bin)
             log("NXP: payload sent = " + str(payload_bin), 3)
         end
@@ -100,11 +100,10 @@ class Nextion : Driver
 
     def screeninit()
         log("NXP: Screen Initialized")
-        self.sendnx("recmod=1")        
+        self.sendnx("recmod=1")
     end
 
     def write_block()
-        
         import string
         log("FLH: Read block",3)
         while size(self.flash_buff)<self.flash_block_size && self.tcp.connected()
@@ -141,7 +140,6 @@ class Nextion : Driver
             self.ser.deinit()
             self.ser = serial(17, 16, 115200, serial.SERIAL_8N1)
         end
-
     end
 
     def every_100ms()
@@ -156,7 +154,7 @@ class Nextion : Driver
                         tasmota.delay(50)
                         log("FLH: Send (High Speed) flash start")
                         self.flash_start_millis = tasmota.millis()
-                        #self.sendnx(string.format("whmi-wris %d,115200,res0",self.flash_size))
+                        # self.sendnx(string.format("whmi-wris %d,115200,res0",self.flash_size))
                         if self.flash_proto_version == 0
                             self.sendnx(string.format("whmi-wri %d,%d,res0",self.flash_size,self.flash_proto_baud))
                         else
@@ -193,19 +191,19 @@ class Nextion : Driver
                                 self.screeninit()
                             elif size(msg)>=2 && msg[0]==0x55 && msg[1]==0xBB
                                 var jm = string.format("{\"CustomRecv\":\"%s\"}",msg[4..-3].asstring())
-                                tasmota.publish_result(jm, "RESULT")        
-                            elif msg[0]==0x07 && size(msg)==1 # BELL/Buzzer
+                                tasmota.publish_result(jm, "RESULT")
+                            elif msg[0]==0x07 && size(msg)==1  # BELL/Buzzer
                                 tasmota.cmd("buzzer 1,1")
                             else
                                 var jm = string.format("{\"nextion\":\"%s\"}",str(msg[0..-4]))
-                                tasmota.publish_result(jm, "RESULT")        
+                                tasmota.publish_result(jm, "RESULT")
                             end
-                        end       
+                        end
                     end
                 end
             end
         end
-    end      
+    end
 
     def begin_nextion_flash()
         self.flash_written = 0
@@ -215,9 +213,9 @@ class Nextion : Driver
         self.sendnx('recmod=0')
         self.sendnx('recmod=0')
         self.flash_mode = 1
-        self.sendnx("connect")        
+        self.sendnx("connect")
     end
-    
+
     def open_url_at(url, pos)
         self.url = url
         import string
@@ -273,18 +271,18 @@ class Nextion : Driver
                 i += 1
             end
         end
-        #print(headers)
-        # check http respose for code 200/206
+        # print(headers)
+        # check http response for code 200/206
         if string.find(headers,"200 OK")>0 || string.find(headers,"206 Partial Content")>0
-            log("FLH: HTTP Respose is 200 OK or 206 Partial Content",3)
+            log("FLH: HTTP Response is 200 OK or 206 Partial Content",3)
         else
-            log("FLH: HTTP Respose is not 200 OK or 206 Partial Content",3)
+            log("FLH: HTTP Response is not 200 OK or 206 Partial Content",3)
             print(headers)
             return -1
         end
         # only set flash size if pos is zero
         if pos == 0
-            # check http respose for content-length
+            # check http response for content-length
             var tag = "Content-Length: "
             i = string.find(headers,tag)
             if (i>0) 
@@ -294,7 +292,6 @@ class Nextion : Driver
             end
             log("FLH: Flash file size: "+str(self.flash_size),3)
         end
-
     end
 
     def flash_nextion(url)
@@ -332,55 +329,53 @@ def update_berry_driver(cmd, idx, payload, payload_json)
     def task()
         import path
         import string
-		if string.find(payload, ".tapp") > 0
-		    print("tapp in URL; will do .tapp update and migration if necessary")
-			
-			if path.exists("autoexec.be")
-			    print("autoexec.be found; will check for migration")
-				var autoexecfile = open('autoexec.be')
-				var line = autoexecfile.readline()
-				autoexecfile.close()
-				if string.find(line, "NSPanel Tasmota Lovelace UI Berry Driver") > 0
-			        print("found lovelace berry driver, going to delete autoexec.be and .bec")
-					path.remove("autoexec.be")
-					path.remove("autoexec.bec")
-				end
-			end
-			
-			var r = tasmota.urlfetch(payload, "nsp-lovelace-driver.tapp")
+        if string.find(payload, ".tapp") > 0
+            print("tapp in URL; will do .tapp update and migration if necessary")
+
+            if path.exists("autoexec.be")
+                print("autoexec.be found; will check for migration")
+                var autoexecfile = open('autoexec.be')
+                var line = autoexecfile.readline()
+                autoexecfile.close()
+                if string.find(line, "NSPanel Tasmota Lovelace UI Berry Driver") > 0
+                    print("found lovelace berry driver, going to delete autoexec.be and .bec")
+                    path.remove("autoexec.be")
+                    path.remove("autoexec.bec")
+                end
+            end
+
+            var r = tasmota.urlfetch(payload, "nsp-lovelace-driver.tapp")
             if r < 0
                 print("Update failed")
             else
                 tasmota.cmd("Restart 1")
             end
-			
-		elif string.find(payload, ".be") > 0
-		    print("be in URL; will do .be update")
-			if path.exists("nsp-lovelace-driver.tapp")
-			    print("Error: there is the tapp version of the berry driver installed; cannot do .be update.")
-			else
+
+        elif string.find(payload, ".be") > 0
+            print("be in URL; will do .be update")
+            if path.exists("nsp-lovelace-driver.tapp")
+                print("Error: there is the tapp version of the berry driver installed; cannot do .be update.")
+            else
                 var cl = webclient()
                 cl.begin(payload)
                 var r = cl.GET()
                 if r == 200
-                    print("Sucessfully downloaded nspanel-lovelace-ui berry driver")
+                    print("Successfully downloaded nspanel-lovelace-ui berry driver")
                 else
                     print("Error while downloading nspanel-lovelace-ui berry driver")
                 end
                 r = cl.write_file("autoexec.be")
                 if r < 0
-                    print("Error while writeing nspanel-lovelace-ui berry driver")
+                    print("Error while writing nspanel-lovelace-ui berry driver")
                 else
-                    print("Sucessfully written nspanel-lovelace-ui berry driver")
+                    print("Successfully written nspanel-lovelace-ui berry driver")
                     tasmota.cmd("Restart 1")
                 end
-			end
-		else
-			print("invalid url filetype")
-		end
-		
-		
-		
+            end
+        else
+            print("invalid url filetype")
+        end
+
         if path.exists("nsp-lovelace-driver.tapp")
             var r = string.find(payload, ".tapp")
             if r < 0
@@ -393,8 +388,8 @@ def update_berry_driver(cmd, idx, payload, payload_json)
             if r < 0
                 print("URL doesn't contain .be skipping update")
             else
-        
-            end                
+
+            end
         end
     end
     tasmota.set_timer(0,task)
@@ -405,8 +400,8 @@ tasmota.add_cmd('UpdateDriverVersion', update_berry_driver)
 
 def flash_nextion(cmd, idx, payload, payload_json)
     def task()
-    nextion.flash_proto_version = 1
-    nextion.flash_proto_baud = 921600
+        nextion.flash_proto_version = 1
+        nextion.flash_proto_baud = 921600
         nextion.flash_nextion(payload)
     end
     tasmota.set_timer(0,task)
@@ -414,7 +409,7 @@ def flash_nextion(cmd, idx, payload, payload_json)
 end
 
 def flash_nextion_adv(cmd, idx, payload, payload_json)
-    def task()        
+    def task()
         if idx==0
             nextion.flash_proto_version = 1
             nextion.flash_proto_baud = 921600
@@ -442,7 +437,6 @@ def flash_nextion_adv(cmd, idx, payload, payload_json)
             nextion.flash_proto_version = 0
             nextion.flash_proto_baud = 115200
         end
-        
         nextion.flash_nextion(payload)
     end
     tasmota.set_timer(0,task)
